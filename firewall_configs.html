@@ -1,0 +1,959 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>华为防火墙配置生成器 - 企业级安全策略转换工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/v4-shims.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#0FC6C2',
+                        accent: '#722ED1',
+                        success: '#00B42A',
+                        warning: '#FF7D00',
+                        danger: '#F53F3F',
+                        dark: '#1D2129',
+                        'dark-2': '#4E5969',
+                        'light-1': '#F2F3F5',
+                        'light-2': '#E5E6EB'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.6s ease-out',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .glass-effect {
+                background: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .gradient-text {
+                background: linear-gradient(135deg, #165DFF, #0FC6C2);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+            .code-block {
+                background: #1E1E1E;
+                color: #D4D4D4;
+                font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(22, 93, 255, 0.5);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .stream-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(22, 93, 255, 0.6), transparent);
+            animation: flow 8s linear infinite;
+        }
+        
+        @keyframes flow {
+            0% {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 min-h-screen font-inter overflow-x-hidden">
+    <!-- 背景动画 -->
+    <div id="background-animation" class="fixed inset-0 pointer-events-none overflow-hidden z-0"></div>
+    
+    <!-- 导航栏 -->
+    <nav class="relative z-10 glass-effect">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fa fa-shield text-2xl text-primary mr-3"></i>
+                        <span class="text-xl font-bold text-white">Firewall Config Generator</span>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#features" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">功能特性</a>
+                        <a href="#generator" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">开始使用</a>
+                        <a href="#docs" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">使用文档</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero 区域 -->
+    <section class="relative z-10 py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="animate-slide-up">
+                <h1 class="text-5xl md:text-6xl font-bold mb-6">
+                    <span class="gradient-text">华为防火墙配置生成器</span>
+                </h1>
+                <p class="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+                    企业级安全策略转换工具，将Excel表格中的安全策略自动转换为华为防火墙可执行的命令脚本，
+                    支持变量与常量定义，大幅提升网络配置效率
+                </p>
+                <div class="flex justify-center space-x-4">
+                    <a href="#generator" class="bg-primary hover:bg-blue-600 text-white px-8 py-3 rounded-lg font-medium transition-all transform hover:scale-105 shadow-lg shadow-primary/25">
+                        <i class="fa fa-rocket mr-2"></i>立即开始
+                    </a>
+                    <a href="#docs" class="glass-effect text-white px-8 py-3 rounded-lg font-medium transition-all transform hover:scale-105">
+                        <i class="fa fa-book mr-2"></i>查看文档
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能特性 -->
+    <section id="features" class="relative z-10 py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-white mb-4">强大的功能特性</h2>
+                <p class="text-gray-400 max-w-2xl mx-auto">为企业网络安全管理员打造的专业工具，让配置工作变得简单高效</p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="glass-effect rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
+                    <div class="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fa fa-upload text-primary text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">Excel智能解析</h3>
+                    <p class="text-gray-400">自动识别Excel表格中的安全策略，支持批量导入，无需手动逐条配置</p>
+                </div>
+                
+                <div class="glass-effect rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
+                    <div class="w-12 h-12 bg-secondary/20 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fa fa-cogs text-secondary text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">变量常量定义</h3>
+                    <p class="text-gray-400">灵活的变量与常量配置，支持自定义命令模板，适配不同的网络环境</p>
+                </div>
+                
+                <div class="glass-effect rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
+                    <div class="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fa fa-magic text-accent text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">自动命令生成</h3>
+                    <p class="text-gray-400">一键生成标准的华为防火墙命令，自动处理IP组、服务组和安全规则</p>
+                </div>
+                
+                <div class="glass-effect rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
+                    <div class="w-12 h-12 bg-success/20 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fa fa-check-circle text-success text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">语法校验</h3>
+                    <p class="text-gray-400">内置语法检查，确保生成的命令符合华为设备规范，避免配置错误</p>
+                </div>
+                
+                <div class="glass-effect rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
+                    <div class="w-12 h-12 bg-warning/20 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fa fa-download text-warning text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">一键导出</h3>
+                    <p class="text-gray-400">支持脚本文件下载，直接上传到防火墙设备执行，快速完成部署</p>
+                </div>
+                
+                <div class="glass-effect rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
+                    <div class="w-12 h-12 bg-danger/20 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fa fa-shield text-danger text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">安全可靠</h3>
+                    <p class="text-gray-400">所有数据在本地处理，不上传服务器，保护您的网络配置隐私安全</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 主工具区域 -->
+    <section id="generator" class="relative z-10 py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-white mb-4">开始配置生成</h2>
+                <p class="text-gray-400">上传您的Excel文件，配置变量和常量，一键生成防火墙命令</p>
+            </div>
+            
+            <div class="grid lg:grid-cols-2 gap-8">
+                <!-- 左侧：配置面板 -->
+                <div class="space-y-6">
+                    <!-- 文件上传 -->
+                    <div class="glass-effect rounded-xl p-6">
+                        <h3 class="text-lg font-semibold text-white mb-4">
+                            <i class="fa fa-file-excel-o text-primary mr-2"></i>上传Excel文件
+                        </h3>
+                        <div id="drop-area" class="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer">
+                            <input type="file" id="file-input" accept=".xlsx,.xls" class="hidden">
+                            <i class="fa fa-cloud-upload text-4xl text-gray-500 mb-4"></i>
+                            <p class="text-gray-400 mb-2">拖拽文件到此处，或点击选择文件</p>
+                            <p class="text-sm text-gray-500">支持 .xlsx, .xls 格式</p>
+                            <div id="file-info" class="hidden mt-4 p-3 bg-green-900/30 rounded-lg">
+                                <i class="fa fa-check-circle text-success mr-2"></i>
+                                <span id="file-name" class="text-green-400"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 变量定义 -->
+                    <div class="glass-effect rounded-xl p-6">
+                        <h3 class="text-lg font-semibold text-white mb-4">
+                            <i class="fa fa-code-fork text-secondary mr-2"></i>变量定义
+                        </h3>
+                        <p class="text-gray-400 text-sm mb-4">变量对应Excel表格中的列名，系统会自动读取对应列的值</p>
+                        <div id="variables-container" class="space-y-3">
+                            <div class="variable-item flex items-center space-x-3">
+                                <input type="text" placeholder="变量名" class="variable-name flex-1 bg-slate-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:outline-none" value="安全策略名称">
+                                <input type="text" placeholder="Excel列名" class="variable-column flex-1 bg-slate-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:outline-none" value="安全策略名称">
+                                <button class="remove-variable text-gray-500 hover:text-danger p-2" disabled>
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button id="add-variable" class="mt-3 text-primary hover:text-blue-400 text-sm font-medium">
+                            <i class="fa fa-plus mr-1"></i>添加变量
+                        </button>
+                    </div>
+                    
+                    <!-- 常量定义 -->
+                    <div class="glass-effect rounded-xl p-6">
+                        <h3 class="text-lg font-semibold text-white mb-4">
+                            <i class="fa fa-cog text-accent mr-2"></i>常量定义
+                        </h3>
+                        <p class="text-gray-400 text-sm mb-4">常量是固定的命令前缀，所有规则都会应用这些配置</p>
+                        <div id="constants-container" class="space-y-3">
+                            <div class="constant-item">
+                                <textarea placeholder="常量命令，每行一条" class="constant-value w-full bg-slate-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:outline-none h-24" rows="4">policy logging
+session logging
+profile av default
+profile ips default</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 生成按钮 -->
+                    <button id="generate-btn" class="w-full bg-primary hover:bg-blue-600 text-white py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fa fa-magic mr-2"></i>生成配置命令
+                    </button>
+                </div>
+                
+                <!-- 右侧：结果预览 -->
+                <div class="glass-effect rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-white">
+                            <i class="fa fa-terminal text-success mr-2"></i>配置命令预览
+                        </h3>
+                        <div class="flex space-x-2">
+                            <button id="copy-btn" class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-slate-700 transition-colors" title="复制到剪贴板">
+                                <i class="fa fa-copy"></i>
+                            </button>
+                            <button id="download-btn" class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-slate-700 transition-colors" title="下载脚本文件">
+                                <i class="fa fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="code-block rounded-lg p-4 h-[600px] overflow-auto">
+                        <pre id="output-commands" class="text-sm whitespace-pre-wrap"># 华为防火墙配置生成器
+# 等待上传Excel文件并点击生成按钮...
+# 
+# 示例输出格式：
+# 
+# ip address-set IP组01 type object
+# address 0 192.168.1.1 mask 32
+# address 1 192.168.1.2 mask 32
+# 
+# rule name 安全策略01
+# source-zone 办公zone
+# destination-zone 服务器zone
+# ...</pre>
+                    </div>
+                    
+                    <!-- 统计信息 -->
+                    <div id="stats-panel" class="hidden mt-4 grid grid-cols-3 gap-4">
+                        <div class="text-center p-3 bg-slate-800 rounded-lg">
+                            <div id="stat-rules" class="text-2xl font-bold text-primary">0</div>
+                            <div class="text-xs text-gray-400">安全规则</div>
+                        </div>
+                        <div class="text-center p-3 bg-slate-800 rounded-lg">
+                            <div id="stat-ipsets" class="text-2xl font-bold text-secondary">0</div>
+                            <div class="text-xs text-gray-400">IP地址集</div>
+                        </div>
+                        <div class="text-center p-3 bg-slate-800 rounded-lg">
+                            <div id="stat-services" class="text-2xl font-bold text-accent">0</div>
+                            <div class="text-xs text-gray-400">服务集</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 数据预览表格 -->
+            <div id="data-preview" class="hidden mt-8 glass-effect rounded-xl p-6">
+                <h3 class="text-lg font-semibold text-white mb-4">
+                    <i class="fa fa-table text-warning mr-2"></i>Excel数据预览
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-700">
+                                <th class="text-left py-3 px-4 text-gray-300">安全策略名称</th>
+                                <th class="text-left py-3 px-4 text-gray-300">源安全区域</th>
+                                <th class="text-left py-3 px-4 text-gray-300">源IP地址</th>
+                                <th class="text-left py-3 px-4 text-gray-300">目的安全区域</th>
+                                <th class="text-left py-3 px-4 text-gray-300">目的IP地址</th>
+                                <th class="text-left py-3 px-4 text-gray-300">服务</th>
+                                <th class="text-left py-3 px-4 text-gray-300">动作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="preview-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 使用文档 -->
+    <section id="docs" class="relative z-10 py-16">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-white mb-4">使用文档</h2>
+                <p class="text-gray-400">快速上手，了解如何使用这个工具</p>
+            </div>
+            
+            <div class="glass-effect rounded-xl p-8 space-y-8">
+                <div>
+                    <h3 class="text-xl font-semibold text-white mb-4">
+                        <span class="inline-flex items-center justify-center w-8 h-8 bg-primary rounded-full text-sm mr-3">1</span>
+                        准备Excel文件
+                    </h3>
+                    <p class="text-gray-400 ml-11">
+                        按照标准格式准备Excel表格，包含安全策略名称、源安全区域、源IP地址、目的安全区域、目的IP地址、服务、动作等列。
+                        您可以下载<a href="#" onclick="downloadTemplate()" class="text-primary hover:underline">模板文件</a>作为参考。
+                    </p>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-semibold text-white mb-4">
+                        <span class="inline-flex items-center justify-center w-8 h-8 bg-primary rounded-full text-sm mr-3">2</span>
+                        上传文件
+                    </h3>
+                    <p class="text-gray-400 ml-11">
+                        将准备好的Excel文件拖拽到上传区域，或点击选择文件。系统会自动解析文件内容并预览数据。
+                    </p>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-semibold text-white mb-4">
+                        <span class="inline-flex items-center justify-center w-8 h-8 bg-primary rounded-full text-sm mr-3">3</span>
+                        配置变量和常量
+                    </h3>
+                    <p class="text-gray-400 ml-11">
+                        变量用于映射Excel列名，常量用于定义所有规则都需要的固定配置，比如日志配置、安全配置文件等。
+                    </p>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-semibold text-white mb-4">
+                        <span class="inline-flex items-center justify-center w-8 h-8 bg-primary rounded-full text-sm mr-3">4</span>
+                        生成并导出
+                    </h3>
+                    <p class="text-gray-400 ml-11">
+                        点击生成按钮，系统会自动解析所有策略，生成IP地址集、服务集和安全规则。
+                        您可以直接复制命令，或下载脚本文件上传到防火墙设备执行。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="relative z-10 py-8 border-t border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500">
+                © 2024 Firewall Config Generator. 企业级网络安全配置工具
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // 全局变量
+        let excelData = null;
+        let parsedData = null;
+        
+        // 背景动画
+        function createBackgroundAnimation() {
+            const container = document.getElementById('background-animation');
+            
+            // 创建粒子
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.opacity = Math.random() * 0.5 + 0.2;
+                container.appendChild(particle);
+            }
+            
+            // 创建流线
+            for (let i = 0; i < 10; i++) {
+                const line = document.createElement('div');
+                line.className = 'stream-line';
+                line.style.top = Math.random() * 100 + '%';
+                line.style.width = Math.random() * 300 + 100 + 'px';
+                line.style.animationDelay = Math.random() * 8 + 's';
+                line.style.animationDuration = (Math.random() * 4 + 6) + 's';
+                container.appendChild(line);
+            }
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            createBackgroundAnimation();
+            initFileUpload();
+            initVariableControls();
+            initActionButtons();
+        });
+        
+        // 文件上传初始化
+        function initFileUpload() {
+            const dropArea = document.getElementById('drop-area');
+            const fileInput = document.getElementById('file-input');
+            
+            dropArea.addEventListener('click', () => fileInput.click());
+            
+            dropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropArea.classList.add('border-primary');
+            });
+            
+            dropArea.addEventListener('dragleave', () => {
+                dropArea.classList.remove('border-primary');
+            });
+            
+            dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropArea.classList.remove('border-primary');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+        }
+        
+        // 处理文件上传
+        function handleFile(file) {
+            if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                alert('请上传Excel文件！');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    excelData = jsonData;
+                    parsedData = jsonData;
+                    
+                    // 显示文件信息
+                    document.getElementById('file-info').classList.remove('hidden');
+                    document.getElementById('file-name').textContent = file.name;
+                    
+                    // 显示数据预览
+                    showDataPreview(jsonData);
+                    
+                    // 启用生成按钮
+                    document.getElementById('generate-btn').disabled = false;
+                    
+                    // 自动更新变量
+                    updateVariablesFromData(jsonData);
+                    
+                } catch (error) {
+                    alert('文件解析失败：' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        // 显示数据预览
+        function showDataPreview(data) {
+            const tbody = document.getElementById('preview-tbody');
+            tbody.innerHTML = '';
+            
+            data.slice(0, 5).forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-700/50';
+                tr.innerHTML = `
+                    <td class="py-2 px-4 text-gray-300">${row['安全策略名称'] || '-'}</td>
+                    <td class="py-2 px-4 text-gray-300">${row['源安全区域'] || '-'}</td>
+                    <td class="py-2 px-4 text-gray-300">${row['源IP地址'] || '-'}</td>
+                    <td class="py-2 px-4 text-gray-300">${row['目的安全区域'] || '-'}</td>
+                    <td class="py-2 px-4 text-gray-300">${row['目的IP地址'] || '-'}</td>
+                    <td class="py-2 px-4 text-gray-300">${row['服务'] || '-'}</td>
+                    <td class="py-2 px-4 text-gray-300">${row['动作'] || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            document.getElementById('data-preview').classList.remove('hidden');
+        }
+        
+        // 从数据更新变量
+        function updateVariablesFromData(data) {
+            if (data.length > 0) {
+                const firstRow = data[0];
+                const container = document.getElementById('variables-container');
+                container.innerHTML = '';
+                
+                Object.keys(firstRow).forEach((key, index) => {
+                    addVariableItem(key, key);
+                });
+            }
+        }
+        
+        // 变量控制
+        function initVariableControls() {
+            document.getElementById('add-variable').addEventListener('click', () => {
+                addVariableItem('', '');
+            });
+        }
+        
+        function addVariableItem(name, column) {
+            const container = document.getElementById('variables-container');
+            const item = document.createElement('div');
+            item.className = 'variable-item flex items-center space-x-3';
+            item.innerHTML = `
+                <input type="text" placeholder="变量名" class="variable-name flex-1 bg-slate-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:outline-none" value="${name}">
+                <input type="text" placeholder="Excel列名" class="variable-column flex-1 bg-slate-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:outline-none" value="${column}">
+                <button class="remove-variable text-gray-500 hover:text-danger p-2">
+                    <i class="fa fa-trash"></i>
+                </button>
+            `;
+            
+            item.querySelector('.remove-variable').addEventListener('click', () => {
+                item.remove();
+            });
+            
+            container.appendChild(item);
+        }
+        
+        // 动作按钮
+        function initActionButtons() {
+            // 生成按钮
+            document.getElementById('generate-btn').addEventListener('click', generateCommands);
+            
+            // 复制按钮
+            document.getElementById('copy-btn').addEventListener('click', () => {
+                const commands = document.getElementById('output-commands').textContent;
+                navigator.clipboard.writeText(commands).then(() => {
+                    showToast('已复制到剪贴板！');
+                });
+            });
+            
+            // 下载按钮
+            document.getElementById('download-btn').addEventListener('click', () => {
+                const commands = document.getElementById('output-commands').textContent;
+                const blob = new Blob([commands], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'firewall_config.txt';
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('文件已下载！');
+            });
+        }
+        
+        // 生成命令
+        function generateCommands() {
+            if (!parsedData || parsedData.length === 0) {
+                alert('请先上传Excel文件！');
+                return;
+            }
+            
+            // 收集变量映射
+            const variables = {};
+            document.querySelectorAll('.variable-item').forEach(item => {
+                const name = item.querySelector('.variable-name').value.trim();
+                const column = item.querySelector('.variable-column').value.trim();
+                if (name && column) {
+                    variables[name] = column;
+                }
+            });
+            
+            // 收集常量
+            const constants = document.querySelector('.constant-value').value.split('\n').filter(l => l.trim());
+            
+            // 收集所有IP组和服务
+            const ipSets = new Set();
+            const serviceSets = new Set();
+            const ipSetAddresses = {};
+            const serviceSetPorts = {};
+            
+            // 首先解析所有数据，收集IP组和服务
+            parsedData.forEach(row => {
+                // 解析源IP
+                const sourceIP = row['源IP地址'];
+                if (sourceIP && sourceIP !== 'any') {
+                    const ips = sourceIP.split(/[,，]/).map(s => s.trim());
+                    ips.forEach(ip => {
+                        if (ip && !isIPAddress(ip)) {
+                            ipSets.add(ip);
+                            if (!ipSetAddresses[ip]) {
+                                ipSetAddresses[ip] = [];
+                            }
+                        }
+                    });
+                }
+                
+                // 解析目的IP
+                const destIP = row['目的IP地址'];
+                if (destIP && destIP !== 'any') {
+                    const ips = destIP.split(/[,，]/).map(s => s.trim());
+                    ips.forEach(ip => {
+                        if (ip && !isIPAddress(ip) && !isIPRange(ip) && !isIPCIDR(ip)) {
+                            ipSets.add(ip);
+                            if (!ipSetAddresses[ip]) {
+                                ipSetAddresses[ip] = [];
+                            }
+                        }
+                    });
+                }
+                
+                // 解析服务
+                const service = row['服务'];
+                if (service && service !== 'any') {
+                    const services = service.split(/[,，]/).map(s => s.trim());
+                    services.forEach(s => {
+                        if (s) {
+                            serviceSets.add(s);
+                            if (!serviceSetPorts[s]) {
+                                serviceSetPorts[s] = parseService(s);
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // 生成命令
+            let commands = [];
+            commands.push('# ============================================');
+            commands.push('# 华为防火墙配置脚本');
+            commands.push('# 生成时间: ' + new Date().toLocaleString());
+            commands.push('# 规则数量: ' + parsedData.length);
+            commands.push('# ============================================');
+            commands.push('');
+            
+            // 生成IP地址集
+            if (ipSets.size > 0) {
+                commands.push('# ------------------------------');
+                commands.push('# IP地址集配置');
+                commands.push('# ------------------------------');
+                commands.push('');
+                
+                let index = 0;
+                Array.from(ipSets).sort().forEach(ipSet => {
+                    commands.push(`ip address-set ${ipSet} type object`);
+                    
+                    // 这里我们需要从原始数据中提取这个IP组的具体地址
+                    // 由于Excel中没有具体的IP地址，我们假设用户会在后续补充
+                    // 或者这里可以添加一个提示
+                    commands.push(`  # 请在此处添加 ${ipSet} 的具体IP地址`);
+                    commands.push(`  # address 0 192.168.1.1 mask 32`);
+                    commands.push(`  # address 1 192.168.1.2 mask 32`);
+                    index++;
+                    commands.push('');
+                });
+            }
+            
+            // 生成服务集
+            if (serviceSets.size > 0) {
+                commands.push('# ------------------------------');
+                commands.push('# 服务配置');
+                commands.push('# ------------------------------');
+                commands.push('');
+                
+                serviceSets.forEach(service => {
+                    const serviceInfo = serviceSetPorts[service];
+                    if (serviceInfo) {
+                        const { protocol, startPort, endPort } = serviceInfo;
+                        commands.push(`ip service-set ${service} type object`);
+                        commands.push(`  service 0 protocol ${protocol} source-port 0 to 65535 destination-port ${startPort} to ${endPort}`);
+                        commands.push('');
+                    }
+                });
+            }
+            
+            // 生成安全规则
+            commands.push('# ------------------------------');
+            commands.push('# 安全策略规则');
+            commands.push('# ------------------------------');
+            commands.push('');
+            
+            parsedData.forEach((row, ruleIndex) => {
+                const ruleName = row['安全策略名称'] || `安全策略${ruleIndex + 1}`;
+                commands.push(`# rule name ${ruleName}`);
+                commands.push(`rule name ${ruleName}`);
+                
+                // 源区域
+                const sourceZone = row['源安全区域'];
+                if (sourceZone && sourceZone !== 'any') {
+                    const zones = sourceZone.split(/[,，]/).map(s => s.trim());
+                    zones.forEach(zone => {
+                        if (zone) commands.push(`  source-zone ${zone}`);
+                    });
+                } else {
+                    commands.push(`  source-zone any`);
+                }
+                
+                // 目的区域
+                const destZone = row['目的安全区域'];
+                if (destZone && destZone !== 'any') {
+                    const zones = destZone.split(/[,，]/).map(s => s.trim());
+                    zones.forEach(zone => {
+                        if (zone) commands.push(`  destination-zone ${zone}`);
+                    });
+                } else {
+                    commands.push(`  destination-zone any`);
+                }
+                
+                // 源地址
+                const sourceIP = row['源IP地址'];
+                if (sourceIP && sourceIP !== 'any') {
+                    const ips = sourceIP.split(/[,，]/).map(s => s.trim());
+                    ips.forEach(ip => {
+                        if (ip) {
+                            if (isIPAddress(ip)) {
+                                commands.push(`  source-address ${ip} mask 255.255.255.255`);
+                            } else if (isIPRange(ip)) {
+                                const [start, end] = ip.split('-');
+                                commands.push(`  source-address range ${start} ${end}`);
+                            } else if (isIPCIDR(ip)) {
+                                const [ipAddr, mask] = parseCIDR(ip);
+                                commands.push(`  source-address ${ipAddr} mask ${mask}`);
+                            } else {
+                                commands.push(`  source-address address-set ${ip}`);
+                            }
+                        }
+                    });
+                } else {
+                    commands.push(`  source-address any`);
+                }
+                
+                // 目的地址
+                const destIP = row['目的IP地址'];
+                if (destIP && destIP !== 'any') {
+                    const ips = destIP.split(/[,，]/).map(s => s.trim());
+                    ips.forEach(ip => {
+                        if (ip) {
+                            if (isIPAddress(ip)) {
+                                commands.push(`  destination-address ${ip} mask 255.255.255.255`);
+                            } else if (isIPRange(ip)) {
+                                const [start, end] = ip.split('-');
+                                commands.push(`  destination-address range ${start} ${end}`);
+                            } else if (isIPCIDR(ip)) {
+                                const [ipAddr, mask] = parseCIDR(ip);
+                                commands.push(`  destination-address ${ipAddr} mask ${mask}`);
+                            } else {
+                                commands.push(`  destination-address address-set ${ip}`);
+                            }
+                        }
+                    });
+                } else {
+                    commands.push(`  destination-address any`);
+                }
+                
+                // 服务
+                const service = row['服务'];
+                if (service && service !== 'any') {
+                    const services = service.split(/[,，]/).map(s => s.trim());
+                    services.forEach(s => {
+                        if (s) {
+                            if (isBuiltInService(s)) {
+                                commands.push(`  service ${s}`);
+                            } else {
+                                commands.push(`  service service-set ${s}`);
+                            }
+                        }
+                    });
+                } else {
+                    commands.push(`  service any`);
+                }
+                
+                // 常量配置
+                constants.forEach(c => {
+                    commands.push(`  ${c}`);
+                });
+                
+                // 动作
+                const action = row['动作'];
+                if (action === '允许' || action === 'permit') {
+                    commands.push(`  action permit`);
+                } else {
+                    commands.push(`  action deny`);
+                }
+                
+                commands.push('');
+            });
+            
+            // 显示结果
+            document.getElementById('output-commands').textContent = commands.join('\n');
+            
+            // 更新统计
+            document.getElementById('stat-rules').textContent = parsedData.length;
+            document.getElementById('stat-ipsets').textContent = ipSets.size;
+            document.getElementById('stat-services').textContent = serviceSets.size;
+            document.getElementById('stats-panel').classList.remove('hidden');
+            
+            showToast('配置命令生成完成！');
+        }
+        
+        // 工具函数
+        function isIPAddress(ip) {
+            return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip);
+        }
+        
+        function isIPRange(ip) {
+            return /^(\d{1,3}\.){3}\d{1,3}-(\d{1,3}\.){3}\d{1,3}$/.test(ip);
+        }
+        
+        function isIPCIDR(ip) {
+            return /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(ip);
+        }
+        
+        function parseCIDR(cidr) {
+            const [ip, prefix] = cidr.split('/');
+            const mask = prefixToMask(parseInt(prefix));
+            return [ip, mask];
+        }
+        
+        function prefixToMask(prefix) {
+            const mask = [];
+            for (let i = 0; i < 4; i++) {
+                if (prefix >= 8) {
+                    mask.push(255);
+                    prefix -= 8;
+                } else if (prefix > 0) {
+                    mask.push(256 - Math.pow(2, 8 - prefix));
+                    prefix = 0;
+                } else {
+                    mask.push(0);
+                }
+            }
+            return mask.join('.');
+        }
+        
+        function parseService(service) {
+            const match = service.match(/^([A-Za-z]+)(\d+)(?:-(\d+))?$/);
+            if (match) {
+                const protocol = match[1].toLowerCase();
+                const startPort = match[2];
+                const endPort = match[3] || startPort;
+                return { protocol, startPort, endPort };
+            }
+            return { protocol: 'tcp', startPort: 0, endPort: 65535 };
+        }
+        
+        function isBuiltInService(service) {
+            const builtIn = ['http', 'https', 'ssh', 'telnet', 'ftp', 'smtp', 'pop3', 'dns', 'icmp'];
+            return builtIn.includes(service.toLowerCase());
+        }
+        
+        // 下载模板
+        function downloadTemplate() {
+            const template = `安全策略名称	源安全区域	源IP地址	目的安全区域	目的IP地址	服务	动作
+安全策略01	办公zone	IP组01	服务器zone	IP组02	TCP443	允许
+安全策略02	办公zone	IP组03	互联网zone	any	any	允许
+安全策略03	any	IP组04	any	192.168.3.10	TCP1000-1005	拒绝
+安全策略04	办公zone，服务器zone	IP组05，IP组06，192.168.3.0/24	any	192.168.3.10，IP组07，IP组08	TCP443	允许`;
+            
+            const blob = new Blob([template], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '防火墙策略模板.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // 提示消息
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-primary text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
